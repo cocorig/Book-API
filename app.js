@@ -1,46 +1,96 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-const nunjucks = require('nunjucks');
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+const axios = require("axios");
+const app = express();
+const port = 8080;
+require("dotenv").config();
+const aladinApiKey = process.env.REACT_APP_ALADIN_API_KEY;
+const naverClientId = process.env.REACT_APP_NAVER_CLIENT_ID;
+const naverClientSecret = process.env.REACT_APP_NAVER_CLIENT_SECRET;
 
-var indexRouter = require('./routes/index');
-// var usersRouter = require('./routes/users');
-
-var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'njk');
-nunjucks.configure('views', { 
-  express: app,
-  watch: true,
-});
-
-app.use(logger('dev'));
+app.use(morgan("dev"));
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+const aladinApiBaseUrl = "https://www.aladin.co.kr/ttb/api/ItemList.aspx";
+const naverApiBaseUrl = "https://openapi.naver.com/v1/search/book.json";
 
-app.use('/', indexRouter);
-// app.use('/users', usersRouter);
+// 공통 함수로 API 요청을 처리하는 함수
+const fetchData = async (url, headers = {}) => {
+  try {
+    const response = await axios.get(url, { headers });
+    return response.data;
+  } catch (error) {
+    throw new Error("에러 발생");
+  }
+};
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+// 베스트셀러 정보 가져오기
+app.get("/bestseller", async (req, res) => {
+  const queryType = "Bestseller";
+  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
+
+  try {
+    const data = await fetchData(aladinApiUrl);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// 신간 도서 정보 가져오기
+app.get("/newBooks", async (req, res) => {
+  const queryType = "ItemNewAll";
+  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  try {
+    const data = await fetchData(aladinApiUrl);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+// 주목할 신작도서 가져오기
+app.get("/NewBookSpecial", async (req, res) => {
+  const queryType = "ItemNewSpecial";
+  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
+
+  try {
+    const data = await fetchData(aladinApiUrl);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-module.exports = app;
+//도서 검색기능
+app.get("/search", async (req, res) => {
+  const isbn = req.query.isbn; // ISBN 정보
+  const searchQuery = req.query.searchQuery; // 사용자 검색 정보
+
+  let naverApiUrl = "";
+  if (isbn) {
+    // ISBN 정보를 이용해 도서 정보 가져오기
+    naverApiUrl = `${naverApiBaseUrl}?query=${isbn}`;
+  } else if (searchQuery) {
+    // 사용자 검색 정보를 이용해 도서 정보 가져오기
+    naverApiUrl = `${naverApiBaseUrl}?query=${encodeURIComponent(searchQuery)}`;
+  } else {
+    res.status(400).json({ error: "ISBN 정보 또는 검색어가 필요합니다." });
+    return;
+  }
+  const headers = {
+    "X-Naver-Client-Id": naverClientId,
+    "X-Naver-Client-Secret": naverClientSecret,
+  };
+  try {
+    const data = await fetchData(naverApiUrl, headers);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Listening on port ${port}...`);
+});

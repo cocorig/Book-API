@@ -34,3 +34,4 @@ jspm_packages
 buildpath.js
 .test/
 lib/
+.env
