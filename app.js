@@ -39,7 +39,7 @@ app.get("/bestseller", async (req, res) => {
 });
 
 // 신간 도서 정보 가져오기
-app.get("/", async (req, res) => {
+app.get("/newBooks", async (req, res) => {
   const queryType = "ItemNewAll";
   const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
 
