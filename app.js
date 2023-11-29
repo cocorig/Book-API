@@ -65,7 +65,6 @@ app.get("/NewBookSpecial", async (req, res) => {
   }
 });
 
-
 //도서 검색기능
 app.get("/search", async (req, res) => {
   const isbn = req.query.isbn; // ISBN 정보
@@ -77,12 +76,14 @@ app.get("/search", async (req, res) => {
     // ISBN 정보를 이용해 네이버 API로 도서 정보 가져오기
     naverApiUrl = `${naverApiBaseUrl}?query=${isbn}`;
     // ISBN 정보를 이용해 알라딘 API로 도서 정보 가져오기
-    aladinApiUrl = `${aladinApiLookUpUrl}?ttbkey=${aladinApiKey}&itemIdType=ISBN13&ItemId=${isbn}&output=js&Version=20131101`;
+    aladinApiUrl = `${aladinApiLookUpUrl}?ttbkey=${aladinApiKey}&itemIdType=ISBN&ItemId=${isbn}&output=js&Cover=Big&Version=20131101`;
   } else if (searchQuery) {
     // 사용자 검색 정보를 이용해 네이버 API로 도서 정보 가져오기
     naverApiUrl = `${naverApiBaseUrl}?query=${encodeURIComponent(searchQuery)}`;
     // 사용자 검색 정보를 이용해 알라딘 API로 도서 정보 가져오기
-    aladinApiUrl = `${aladinApiSearchUrl}?ttbkey=${aladinApiKey}&Query=${encodeURIComponent(searchQuery)}&MaxResults=100&start=1&SearchTarget=Book&output=js&Version=20131101`;
+    aladinApiUrl = `${aladinApiSearchUrl}?ttbkey=${aladinApiKey}&Query=${encodeURIComponent(
+      searchQuery
+    )}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
   } else {
     res.status(400).json({ error: "ISBN 정보 또는 검색어가 필요합니다." });
     return;
