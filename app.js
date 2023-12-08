@@ -42,7 +42,7 @@ app.use(
 );
 app.get("/bestseller", async (req, res) => {
   const queryType = "Bestseller";
-  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
+  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&CategoryId&Version=20131101`;
 
   try {
     const data = await fetchData(aladinApiUrl);
@@ -54,19 +54,7 @@ app.get("/bestseller", async (req, res) => {
 
 app.get("/newbooks", async (req, res) => {
   const queryType = "ItemNewAll";
-  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
-
-  try {
-    const data = await fetchData(aladinApiUrl);
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get("/special", async (req, res) => {
-  const queryType = "ItemNewSpecial";
-  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
+  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&CategoryId&Version=20131101`;
 
   try {
     const data = await fetchData(aladinApiUrl);
@@ -77,42 +65,40 @@ app.get("/special", async (req, res) => {
 });
 
 app.get("/search", async (req, res) => {
-  const { isbn, searchQuery } = req.query;
-  let naverApiUrl = "";
-  let aladinApiUrl = "";
-
-  if (isbn) {
-    naverApiUrl = `${naverApiBaseUrl}?query=${isbn}`;
-    aladinApiUrl = `${aladinApiLookUpUrl}?ttbkey=${aladinApiKey}&itemIdType=ISBN&ItemId=${isbn}&output=js&Cover=Big&Version=20131101`;
-  } else if (searchQuery) {
-    naverApiUrl = `${naverApiBaseUrl}?query=${encodeURIComponent(searchQuery)}`;
-
-    aladinApiUrl = `${aladinApiSearchUrl}?ttbkey=${aladinApiKey}&Query=${encodeURIComponent(
-      searchQuery
-    )}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
-  } else {
-    res.status(400).json({ error: "ISBN 정보 또는 검색어가 필요합니다." });
-    return;
-  }
-
-  const naverHeaders = {
-    "X-Naver-Client-Id": naverClientId,
-    "X-Naver-Client-Secret": naverClientSecret,
-  };
-
   try {
-    let naverData = {};
-    let aladinData = {};
+    const { isbn, searchQuery } = req.query;
+    let naverApiUrl = "";
+    let aladinApiUrl = "";
 
-    if (naverApiUrl) {
-      naverData = await fetchData(naverApiUrl, naverHeaders);
+    if (!isbn && !searchQuery) {
+      return res
+        .status(400)
+        .json({ error: "ISBN 정보 또는 검색어가 필요합니다." });
     }
 
-    if (aladinApiUrl) {
-      aladinData = await fetchData(aladinApiUrl);
+    if (isbn) {
+      naverApiUrl = `${naverApiBaseUrl}?query=${isbn}`;
+      aladinApiUrl = `${aladinApiLookUpUrl}?ttbkey=${aladinApiKey}&itemIdType=ISBN&ItemId=${isbn}&output=js&Cover=Big&Version=20131101&CategoryId`;
+    } else {
+      naverApiUrl = `${naverApiBaseUrl}?query=${encodeURIComponent(
+        searchQuery
+      )}`;
+      aladinApiUrl = `${aladinApiSearchUrl}?ttbkey=${aladinApiKey}&Query=${encodeURIComponent(
+        searchQuery
+      )}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101&CategoryId`;
     }
 
-    res.json({ naverData: naverData, aladinData: aladinData });
+    const naverHeaders = {
+      "X-Naver-Client-Id": naverClientId,
+      "X-Naver-Client-Secret": naverClientSecret,
+    };
+
+    const [naverData, aladinData] = await Promise.all([
+      fetchData(naverApiUrl, naverHeaders),
+      fetchData(aladinApiUrl),
+    ]);
+
+    res.json({ naverData, aladinData });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
