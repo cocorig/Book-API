@@ -64,6 +64,18 @@ app.get("/newbooks", async (req, res) => {
   }
 });
 
+app.get("/special", async (req, res) => {
+  const queryType = "ItemNewSpecial";
+  const aladinApiUrl = `${aladinApiBaseUrl}?ttbkey=${aladinApiKey}&QueryType=${queryType}&MaxResults=100&start=1&SearchTarget=Book&output=js&Cover=Big&Version=20131101`;
+
+  try {
+    const data = await fetchData(aladinApiUrl);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/search", async (req, res) => {
   try {
     const { isbn, searchQuery } = req.query;
